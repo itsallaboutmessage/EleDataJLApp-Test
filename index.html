@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Volunteer Dashboard</title>
+  <title>Outreach Tracking Form</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
-      padding: 0;
       background-color: #f8f9fa;
       color: #333;
     }
@@ -18,16 +17,13 @@
       color: #2c3e50;
     }
 
-    label {
-      font-weight: bold;
-    }
-
     .form-section {
-      background-color: #ffffff;
+      background-color: #fff;
       padding: 15px;
       margin-bottom: 15px;
       border-radius: 8px;
       box-shadow: 0 0 5px rgba(0,0,0,0.05);
+      scroll-margin-top: 80px;
     }
 
     input[type="text"], select, textarea {
@@ -37,15 +33,10 @@
       margin-bottom: 10px;
       border-radius: 4px;
       border: 1px solid #ccc;
-      box-sizing: border-box;
     }
 
-    textarea {
-      resize: vertical;
-    }
-
-    input[type="radio"] {
-      margin-right: 5px;
+    label {
+      font-weight: bold;
     }
 
     button {
@@ -74,10 +65,6 @@
     }
 
     @media (max-width: 600px) {
-      .form-section {
-        padding: 10px;
-      }
-
       h1 {
         font-size: 24px;
       }
@@ -98,57 +85,40 @@
     <select id="numberSelect"></select>
   </div>
 
-  <div class="form-section" id="outreachContainer" style="display: none;">
-    <label>Choose Outreach Method:</label><br>
+  <div class="form-section" id="scrollCard" style="display: none;">
+    <label>Outreach Method:</label><br>
     <input type="radio" id="doorKnock" name="outreach" value="Door Knock">
     <label for="doorKnock">Door Knock</label><br>
     <input type="radio" id="phoneCall" name="outreach" value="Phone Call">
-    <label for="phoneCall">Phone Call</label>
-  </div>
+    <label for="phoneCall">Phone Call</label><br><br>
 
-  <div class="form-section" id="connectedContainer" style="display: none;">
-    <label>Connected?</label><br>
-    <input type="radio" id="connectedYes" name="connected" value="Yes">
-    <label for="connectedYes">Yes</label><br>
-    <input type="radio" id="connectedNo" name="connected" value="No">
-    <label for="connectedNo">No</label>
-  </div>
-
-  <div class="form-section" id="awayContainer" style="display: none;">
-    <label>Away?</label><br>
-    <input type="radio" id="awayYes" name="away" value="Yes">
-    <label for="awayYes">Yes</label><br>
-    <input type="radio" id="awayNo" name="away" value="No">
-    <label for="awayNo">No</label><br>
-    <input type="radio" id="awayNotSure" name="away" value="Not Sure">
-    <label for="awayNotSure">Not Sure</label>
-  </div>
-
-  <div class="form-section" id="supporterContainer" style="display: none;">
     <label>Supporter?</label><br>
     <input type="radio" id="supporterYes" name="supporter" value="Yes">
     <label for="supporterYes">Yes</label><br>
     <input type="radio" id="supporterNo" name="supporter" value="No">
     <label for="supporterNo">No</label><br>
     <input type="radio" id="supporterNotSure" name="supporter" value="Not Sure">
-    <label for="supporterNotSure">Not Sure</label>
-  </div>
+    <label for="supporterNotSure">Not Sure</label><br><br>
 
-  <div class="form-section" id="signNeededContainer" style="display: none;">
-    <label>Sign Needed?</label><br>
-    <input type="radio" id="signYes" name="signNeeded" value="Yes">
-    <label for="signYes">Yes</label><br>
-    <input type="radio" id="signNo" name="signNeeded" value="No">
-    <label for="signNo">No</label>
+    <div id="signPhoneContainer" style="display: none;">
+      <label>Sign Needed?</label><br>
+      <input type="radio" id="signYes" name="signNeeded" value="Yes">
+      <label for="signYes">Yes</label><br>
+      <input type="radio" id="signNo" name="signNeeded" value="No">
+      <label for="signNo">No</label><br><br>
+
+      <label>Phone:</label><br> <!-- Removed “(Optional)” here -->
+      <input type="text" id="phone" placeholder="Enter phone number">
+    </div>
   </div>
 
   <div class="form-section" id="commentContainer" style="display: none;">
-    <label for="comment">Comment (Optional):</label><br>
-    <textarea id="comment" rows="4" cols="50" placeholder="Enter any notes..."></textarea>
+    <label for="comment">Comment:</label>
+    <textarea id="comment" rows="3" placeholder="Enter any notes..."></textarea>
   </div>
 
   <div class="form-section" style="text-align: center;">
-    <button id="submitBtn" style="display: none;">Submit</button>
+    <button id="submitBtn" style="display: none;">Submit & Go to Next House</button>
     <p id="statusMsg"></p>
     <button id="okBtn" style="display: none;">OK</button>
   </div>
@@ -160,15 +130,13 @@
     const streetInput = document.getElementById('streetInput');
     const streetSelect = document.getElementById('streetSelect');
     const numberSelect = document.getElementById('numberSelect');
-    const outreachContainer = document.getElementById('outreachContainer');
-    const connectedContainer = document.getElementById('connectedContainer');
-    const awayContainer = document.getElementById('awayContainer');
-    const supporterContainer = document.getElementById('supporterContainer');
-    const signNeededContainer = document.getElementById('signNeededContainer');
+    const scrollCard = document.getElementById('scrollCard');
+    const signPhoneContainer = document.getElementById('signPhoneContainer');
     const commentContainer = document.getElementById('commentContainer');
     const submitBtn = document.getElementById('submitBtn');
     const statusMsg = document.getElementById('statusMsg');
     const okBtn = document.getElementById('okBtn');
+    const phoneInput = document.getElementById('phone');
 
     fetch(sheetBestURL)
       .then(res => res.json())
@@ -210,54 +178,43 @@
       streetInput.value = selectedStreet;
       const numbers = allData.filter(r => r['Street'] === selectedStreet).map(r => r['Street Number']);
       populateNumberDropdown([...new Set(numbers)]);
-      outreachContainer.style.display = 'block';
-      commentContainer.style.display = 'block';
     });
 
     numberSelect.addEventListener('change', () => {
-      // nothing here for now
+      scrollCard.style.display = 'block';
+      commentContainer.style.display = 'block';
+      document.getElementById('doorKnock').focus();
+      scrollIntoView(scrollCard);
     });
 
     document.querySelectorAll('input[name="outreach"]').forEach(el => {
       el.addEventListener('change', () => {
-        connectedContainer.style.display = 'block';
+        document.getElementById('supporterYes').focus();
         checkShowSubmit();
       });
-    });
-
-    document.querySelectorAll('input[name="connected"]').forEach(el => {
-      el.addEventListener('change', (e) => {
-        if (e.target.value === 'No') {
-          awayContainer.style.display = 'block';
-          supporterContainer.style.display = 'none';
-          signNeededContainer.style.display = 'none';
-        } else {
-          awayContainer.style.display = 'none';
-          supporterContainer.style.display = 'block';
-        }
-        checkShowSubmit();
-      });
-    });
-
-    document.querySelectorAll('input[name="away"]').forEach(el => {
-      el.addEventListener('change', () => checkShowSubmit());
     });
 
     document.querySelectorAll('input[name="supporter"]').forEach(el => {
       el.addEventListener('change', (e) => {
-        signNeededContainer.style.display = (e.target.value === 'Yes') ? 'block' : 'none';
-        checkShowSubmit();
+        signPhoneContainer.style.display = (e.target.value === 'Yes') ? 'block' : 'none';
+        if (e.target.value === 'Yes') {
+          document.getElementById('signYes').focus();
+        } else {
+          submitBtn.style.display = 'inline-block';
+        }
+        scrollIntoView(submitBtn);
       });
     });
 
-    function checkShowSubmit() {
-      const outreach = document.querySelector('input[name="outreach"]:checked');
-      const connected = document.querySelector('input[name="connected"]:checked');
-      const away = document.querySelector('input[name="away"]:checked');
-      const supporter = document.querySelector('input[name="supporter"]:checked');
+    document.querySelectorAll('input[name="signNeeded"]').forEach(el => {
+      el.addEventListener('change', () => {
+        submitBtn.style.display = 'inline-block';
+        scrollIntoView(submitBtn);
+      });
+    });
 
-      const show = outreach && connected && ((connected.value === 'No' && away) || (connected.value === 'Yes' && supporter));
-      submitBtn.style.display = show ? 'inline-block' : 'none';
+    function scrollIntoView(element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     submitBtn.addEventListener('click', () => {
@@ -265,10 +222,9 @@
       const selectedNumber = numberSelect.value;
 
       const outreach = document.querySelector('input[name="outreach"]:checked')?.value || '';
-      const connected = document.querySelector('input[name="connected"]:checked')?.value || '';
-      const away = document.querySelector('input[name="away"]:checked')?.value || '';
       const supporter = document.querySelector('input[name="supporter"]:checked')?.value || '';
       const signNeeded = document.querySelector('input[name="signNeeded"]:checked')?.value || '';
+      const phone = phoneInput.value || '';
       const comment = document.getElementById('comment').value || '';
       const timestamp = new Date().toISOString();
 
@@ -282,10 +238,9 @@
         "Street": selectedStreet,
         "Street Number": selectedNumber,
         "Outreach Method": outreach,
-        "Connected?": connected,
-        "Away?": away,
         "Supporter?": supporter,
         "Sign Needed?": signNeeded,
+        "Phone": phone,
         "Comment Volunteer": comment,
         "Timestamp Volunteer": timestamp
       }));
@@ -293,26 +248,61 @@
       Promise.all(submissions.map(payload => {
         return fetch(sheetBestURL, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
       }))
       .then(responses => {
         const allOk = responses.every(res => res.ok);
         statusMsg.textContent = allOk ? '✅ Submitted successfully!' : '❌ Some submissions failed.';
-        okBtn.style.display = allOk ? 'inline-block' : 'none';
-        submitBtn.style.display = 'none';
+        // Hide status message after 3 seconds
+        setTimeout(() => {
+          statusMsg.textContent = '';
+        }, 3000);
+
+        if (allOk) moveToNextHouse();
       })
       .catch(() => {
         statusMsg.textContent = '❌ Failed to submit. Please try again.';
+        // Hide status message after 3 seconds
+        setTimeout(() => {
+          statusMsg.textContent = '';
+        }, 3000);
       });
     });
 
     okBtn.addEventListener('click', () => {
-      location.reload(); // simplest reset method for now
+      location.reload();
     });
+
+    function moveToNextHouse() {
+      const currentStreet = streetSelect.value;
+      const currentNumber = numberSelect.value;
+      const streetNumbers = [...new Set(allData
+        .filter(r => r['Street'] === currentStreet)
+        .map(r => r['Street Number']))];
+      const sortedNumbers = streetNumbers.sort((a, b) => parseInt(a) - parseInt(b));
+      const currentIndex = sortedNumbers.indexOf(currentNumber);
+      const nextIndex = currentIndex + 1;
+
+      if (nextIndex < sortedNumbers.length) {
+        numberSelect.value = sortedNumbers[nextIndex];
+        numberSelect.dispatchEvent(new Event('change'));
+        resetFormState();
+      } else {
+        statusMsg.textContent += " ✅ End of houses on this street.";
+        okBtn.style.display = 'inline-block';
+        submitBtn.style.display = 'none';
+      }
+    }
+
+    function resetFormState() {
+      document.querySelectorAll('input[name="outreach"], input[name="supporter"], input[name="signNeeded"]').forEach(el => el.checked = false);
+      phoneInput.value = '';
+      document.getElementById('comment').value = '';
+      signPhoneContainer.style.display = 'none';
+      submitBtn.style.display = 'none';
+    }
   </script>
 </body>
 </html>
