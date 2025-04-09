@@ -1,20 +1,318 @@
-<!-- Add this inside your <style> tag -->
-<style>
-  /* ... existing styles ... */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Volunteer Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+      background-color: #f8f9fa;
+      color: #333;
+    }
 
-  .spinner {
-    display: none;
-    margin: 15px auto;
-    border: 6px solid #f3f3f3;
-    border-top: 6px solid #007bff;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-  }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
 
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-</style>
+    label {
+      font-weight: bold;
+    }
+
+    .form-section {
+      background-color: #ffffff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.05);
+    }
+
+    input[type="text"], select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    input[type="radio"] {
+      margin-right: 5px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #okBtn {
+      background-color: #28a745;
+      margin-top: 10px;
+    }
+
+    #statusMsg {
+      font-weight: bold;
+      color: green;
+      margin-top: 15px;
+    }
+
+    @media (max-width: 600px) {
+      .form-section {
+        padding: 10px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Outreach Tracking Form</h1>
+
+  <div class="form-section">
+    <label for="streetInput">Select Street:</label>
+    <input type="text" id="streetInput" placeholder="Type a street name..." />
+    <select id="streetSelect" size="5"></select>
+  </div>
+
+  <div class="form-section">
+    <label for="numberSelect">Select Street Number:</label>
+    <select id="numberSelect"></select>
+  </div>
+
+  <div class="form-section" id="outreachContainer" style="display: none;">
+    <label>Choose Outreach Method:</label><br>
+    <input type="radio" id="doorKnock" name="outreach" value="Door Knock">
+    <label for="doorKnock">Door Knock</label><br>
+    <input type="radio" id="phoneCall" name="outreach" value="Phone Call">
+    <label for="phoneCall">Phone Call</label>
+  </div>
+
+  <div class="form-section" id="connectedContainer" style="display: none;">
+    <label>Connected?</label><br>
+    <input type="radio" id="connectedYes" name="connected" value="Yes">
+    <label for="connectedYes">Yes</label><br>
+    <input type="radio" id="connectedNo" name="connected" value="No">
+    <label for="connectedNo">No</label>
+  </div>
+
+  <div class="form-section" id="awayContainer" style="display: none;">
+    <label>Away?</label><br>
+    <input type="radio" id="awayYes" name="away" value="Yes">
+    <label for="awayYes">Yes</label><br>
+    <input type="radio" id="awayNo" name="away" value="No">
+    <label for="awayNo">No</label><br>
+    <input type="radio" id="awayNotSure" name="away" value="Not Sure">
+    <label for="awayNotSure">Not Sure</label>
+  </div>
+
+  <div class="form-section" id="supporterContainer" style="display: none;">
+    <label>Supporter?</label><br>
+    <input type="radio" id="supporterYes" name="supporter" value="Yes">
+    <label for="supporterYes">Yes</label><br>
+    <input type="radio" id="supporterNo" name="supporter" value="No">
+    <label for="supporterNo">No</label><br>
+    <input type="radio" id="supporterNotSure" name="supporter" value="Not Sure">
+    <label for="supporterNotSure">Not Sure</label>
+  </div>
+
+  <div class="form-section" id="signNeededContainer" style="display: none;">
+    <label>Sign Needed?</label><br>
+    <input type="radio" id="signYes" name="signNeeded" value="Yes">
+    <label for="signYes">Yes</label><br>
+    <input type="radio" id="signNo" name="signNeeded" value="No">
+    <label for="signNo">No</label>
+  </div>
+
+  <div class="form-section" id="commentContainer" style="display: none;">
+    <label for="comment">Comment (Optional):</label><br>
+    <textarea id="comment" rows="4" cols="50" placeholder="Enter any notes..."></textarea>
+  </div>
+
+  <div class="form-section" style="text-align: center;">
+    <button id="submitBtn" style="display: none;">Submit</button>
+    <p id="statusMsg"></p>
+    <button id="okBtn" style="display: none;">OK</button>
+  </div>
+
+  <script>
+    const sheetBestURL = 'https://api.sheetbest.com/sheets/26fafab8-c25f-46a0-92fe-b5649a18b3cf';
+    let allData = [];
+
+    const streetInput = document.getElementById('streetInput');
+    const streetSelect = document.getElementById('streetSelect');
+    const numberSelect = document.getElementById('numberSelect');
+    const outreachContainer = document.getElementById('outreachContainer');
+    const connectedContainer = document.getElementById('connectedContainer');
+    const awayContainer = document.getElementById('awayContainer');
+    const supporterContainer = document.getElementById('supporterContainer');
+    const signNeededContainer = document.getElementById('signNeededContainer');
+    const commentContainer = document.getElementById('commentContainer');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusMsg = document.getElementById('statusMsg');
+    const okBtn = document.getElementById('okBtn');
+
+    fetch(sheetBestURL)
+      .then(res => res.json())
+      .then(data => {
+        allData = data;
+        const uniqueStreets = [...new Set(data.map(row => row['Street']).filter(Boolean))];
+        populateStreetDropdown(uniqueStreets);
+      });
+
+    function populateStreetDropdown(streets) {
+      streetSelect.innerHTML = '';
+      streets.forEach(street => {
+        const option = document.createElement('option');
+        option.value = street;
+        option.textContent = street;
+        streetSelect.appendChild(option);
+      });
+    }
+
+    function populateNumberDropdown(numbers) {
+      numberSelect.innerHTML = '';
+      numbers.forEach(num => {
+        const option = document.createElement('option');
+        option.value = num;
+        option.textContent = num;
+        numberSelect.appendChild(option);
+      });
+    }
+
+    streetInput.addEventListener('input', () => {
+      const filter = streetInput.value.toLowerCase();
+      const matched = [...new Set(allData.map(row => row['Street']).filter(Boolean))]
+        .filter(street => street.toLowerCase().includes(filter));
+      populateStreetDropdown(matched);
+    });
+
+    streetSelect.addEventListener('change', () => {
+      const selectedStreet = streetSelect.value;
+      streetInput.value = selectedStreet;
+      const numbers = allData.filter(r => r['Street'] === selectedStreet).map(r => r['Street Number']);
+      populateNumberDropdown([...new Set(numbers)]);
+      outreachContainer.style.display = 'block';
+      commentContainer.style.display = 'block';
+    });
+
+    numberSelect.addEventListener('change', () => {
+      // nothing here for now
+    });
+
+    document.querySelectorAll('input[name="outreach"]').forEach(el => {
+      el.addEventListener('change', () => {
+        connectedContainer.style.display = 'block';
+        checkShowSubmit();
+      });
+    });
+
+    document.querySelectorAll('input[name="connected"]').forEach(el => {
+      el.addEventListener('change', (e) => {
+        if (e.target.value === 'No') {
+          awayContainer.style.display = 'block';
+          supporterContainer.style.display = 'none';
+          signNeededContainer.style.display = 'none';
+        } else {
+          awayContainer.style.display = 'none';
+          supporterContainer.style.display = 'block';
+        }
+        checkShowSubmit();
+      });
+    });
+
+    document.querySelectorAll('input[name="away"]').forEach(el => {
+      el.addEventListener('change', () => checkShowSubmit());
+    });
+
+    document.querySelectorAll('input[name="supporter"]').forEach(el => {
+      el.addEventListener('change', (e) => {
+        signNeededContainer.style.display = (e.target.value === 'Yes') ? 'block' : 'none';
+        checkShowSubmit();
+      });
+    });
+
+    function checkShowSubmit() {
+      const outreach = document.querySelector('input[name="outreach"]:checked');
+      const connected = document.querySelector('input[name="connected"]:checked');
+      const away = document.querySelector('input[name="away"]:checked');
+      const supporter = document.querySelector('input[name="supporter"]:checked');
+
+      const show = outreach && connected && ((connected.value === 'No' && away) || (connected.value === 'Yes' && supporter));
+      submitBtn.style.display = show ? 'inline-block' : 'none';
+    }
+
+    submitBtn.addEventListener('click', () => {
+      const selectedStreet = streetSelect.value;
+      const selectedNumber = numberSelect.value;
+
+      const outreach = document.querySelector('input[name="outreach"]:checked')?.value || '';
+      const connected = document.querySelector('input[name="connected"]:checked')?.value || '';
+      const away = document.querySelector('input[name="away"]:checked')?.value || '';
+      const supporter = document.querySelector('input[name="supporter"]:checked')?.value || '';
+      const signNeeded = document.querySelector('input[name="signNeeded"]:checked')?.value || '';
+      const comment = document.getElementById('comment').value || '';
+      const timestamp = new Date().toISOString();
+
+      const matchingPeople = allData.filter(row =>
+        row['Street'] === selectedStreet && row['Street Number'] === selectedNumber
+      );
+
+      const submissions = matchingPeople.map(person => ({
+        "First Name": person["First Name"],
+        "Last Name": person["Last Name"],
+        "Street": selectedStreet,
+        "Street Number": selectedNumber,
+        "Outreach Method": outreach,
+        "Connected?": connected,
+        "Away?": away,
+        "Supporter?": supporter,
+        "Sign Needed?": signNeeded,
+        "Comment Volunteer": comment,
+        "Timestamp Volunteer": timestamp
+      }));
+
+      Promise.all(submissions.map(payload => {
+        return fetch(sheetBestURL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      }))
+      .then(responses => {
+        const allOk = responses.every(res => res.ok);
+        statusMsg.textContent = allOk ? '✅ Submitted successfully!' : '❌ Some submissions failed.';
+        okBtn.style.display = allOk ? 'inline-block' : 'none';
+        submitBtn.style.display = 'none';
+      })
+      .catch(() => {
+        statusMsg.textContent = '❌ Failed to submit. Please try again.';
+      });
+    });
+
+    okBtn.addEventListener('click', () => {
+      location.reload(); // simplest reset method for now
+    });
+  </script>
+</body>
+</html>
