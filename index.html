@@ -53,11 +53,6 @@
       background-color: #0056b3;
     }
 
-    #okBtn {
-      background-color: #28a745;
-      margin-top: 10px;
-    }
-
     #statusMsg {
       font-weight: bold;
       color: green;
@@ -101,14 +96,32 @@
     <label for="supporterNotSure">Not Sure</label><br><br>
 
     <div id="signPhoneContainer" style="display: none;">
-      <label>Sign Needed?</label><br>
+      <label>Name:</label><br>
+      <input type="text" id="name" placeholder="Enter name" /><br><br>
+
+      <label>Lawn Sign Needed?</label><br>
       <input type="radio" id="signYes" name="signNeeded" value="Yes">
       <label for="signYes">Yes</label><br>
       <input type="radio" id="signNo" name="signNeeded" value="No">
       <label for="signNo">No</label><br><br>
 
-      <label>Phone:</label><br> <!-- Removed “(Optional)” here -->
+      <label>Phone:</label><br>
       <input type="text" id="phone" placeholder="Enter phone number">
+      
+      <label for="votes">Number of Votes:</label><br>
+      <select id="votes">
+        <option value="">Select number of votes</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10</option>
+      </select><br><br>
     </div>
   </div>
 
@@ -120,12 +133,14 @@
   <div class="form-section" style="text-align: center;">
     <button id="submitBtn" style="display: none;">Submit & Go to Next House</button>
     <p id="statusMsg"></p>
-    <button id="okBtn" style="display: none;">OK</button>
   </div>
 
   <script>
-    const sheetBestURL = 'https://api.sheetbest.com/sheets/26fafab8-c25f-46a0-92fe-b5649a18b3cf';
+    const sheetBestReadURL = 'https://api.sheetbest.com/sheets/26fafab8-c25f-46a0-92fe-b5649a18b3cf'; // For reading data
+    const sheetBestWriteURL = 'https://api.sheetbest.com/sheets/4bb130c6-958d-4c46-87aa-52bc5a361f31'; // For writing data
     let allData = [];
+    let houseIndex = 0;
+    let currentStreet = '';
 
     const streetInput = document.getElementById('streetInput');
     const streetSelect = document.getElementById('streetSelect');
@@ -135,15 +150,20 @@
     const commentContainer = document.getElementById('commentContainer');
     const submitBtn = document.getElementById('submitBtn');
     const statusMsg = document.getElementById('statusMsg');
-    const okBtn = document.getElementById('okBtn');
     const phoneInput = document.getElementById('phone');
+    const votesInput = document.getElementById('votes');
+    const nameInput = document.getElementById('name');  // Name input element
 
-    fetch(sheetBestURL)
+    // Fetch data from the read URL to populate street and street numbers
+    fetch(sheetBestReadURL)
       .then(res => res.json())
       .then(data => {
         allData = data;
         const uniqueStreets = [...new Set(data.map(row => row['Street']).filter(Boolean))];
         populateStreetDropdown(uniqueStreets);
+      })
+      .catch(err => {
+        console.error("Error fetching data: ", err);
       });
 
     function populateStreetDropdown(streets) {
@@ -174,9 +194,9 @@
     });
 
     streetSelect.addEventListener('change', () => {
-      const selectedStreet = streetSelect.value;
-      streetInput.value = selectedStreet;
-      const numbers = allData.filter(r => r['Street'] === selectedStreet).map(r => r['Street Number']);
+      currentStreet = streetSelect.value;
+      streetInput.value = currentStreet;
+      const numbers = allData.filter(r => r['Street'] === currentStreet).map(r => r['Street Number']);
       populateNumberDropdown([...new Set(numbers)]);
     });
 
@@ -196,11 +216,11 @@
 
     document.querySelectorAll('input[name="supporter"]').forEach(el => {
       el.addEventListener('change', (e) => {
-        signPhoneContainer.style.display = (e.target.value === 'Yes') ? 'block' : 'none';
         if (e.target.value === 'Yes') {
-          document.getElementById('signYes').focus();
+          signPhoneContainer.style.display = 'block'; // Show the Lawn Sign, Phone, and Votes container
         } else {
-          submitBtn.style.display = 'inline-block';
+          signPhoneContainer.style.display = 'none'; // Hide the container if 'No' or 'Not Sure' is selected
+          submitBtn.style.display = 'inline-block'; // Show Submit button if 'No' or 'Not Sure'
         }
         scrollIntoView(submitBtn);
       });
@@ -208,10 +228,21 @@
 
     document.querySelectorAll('input[name="signNeeded"]').forEach(el => {
       el.addEventListener('change', () => {
-        submitBtn.style.display = 'inline-block';
+        submitBtn.style.display = 'inline-block'; // Show submit button when sign needed value is selected
         scrollIntoView(submitBtn);
       });
     });
+
+    // Check if all fields are filled to enable the submit button
+    function checkShowSubmit() {
+      if (
+        streetSelect.value && numberSelect.value &&
+        document.querySelector('input[name="outreach"]:checked') &&
+        document.querySelector('input[name="supporter"]:checked')
+      ) {
+        submitBtn.style.display = 'inline-block';
+      }
+    }
 
     function scrollIntoView(element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -224,7 +255,9 @@
       const outreach = document.querySelector('input[name="outreach"]:checked')?.value || '';
       const supporter = document.querySelector('input[name="supporter"]:checked')?.value || '';
       const signNeeded = document.querySelector('input[name="signNeeded"]:checked')?.value || '';
+      const name = nameInput.value || '';
       const phone = phoneInput.value || '';
+      const votes = votesInput.value || '';
       const comment = document.getElementById('comment').value || '';
       const timestamp = new Date().toISOString();
 
@@ -233,75 +266,61 @@
       );
 
       const submissions = matchingPeople.map(person => ({
-        "First Name": person["First Name"],
-        "Last Name": person["Last Name"],
-        "Street": selectedStreet,
-        "Street Number": selectedNumber,
-        "Outreach Method": outreach,
-        "Supporter?": supporter,
-        "Sign Needed?": signNeeded,
-        "Phone": phone,
-        "Comment Volunteer": comment,
-        "Timestamp Volunteer": timestamp
+        ...person,
+        'Outreach Method': outreach,
+        'Supporter?': supporter,
+        'Sign Needed?': signNeeded,
+        'Name': name,
+        'Phone': phone,
+        'Votes': votes,
+        'Comment': comment,
+        'Timestamp': timestamp
       }));
 
-      Promise.all(submissions.map(payload => {
-        return fetch(sheetBestURL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      }))
-      .then(responses => {
-        const allOk = responses.every(res => res.ok);
-        statusMsg.textContent = allOk ? '✅ Submitted successfully!' : '❌ Some submissions failed.';
-        // Hide status message after 3 seconds
-        setTimeout(() => {
-          statusMsg.textContent = '';
-        }, 3000);
-
-        if (allOk) moveToNextHouse();
+      // Send the data to the API endpoint
+      fetch(sheetBestWriteURL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(submissions)
       })
-      .catch(() => {
-        statusMsg.textContent = '❌ Failed to submit. Please try again.';
-        // Hide status message after 3 seconds
-        setTimeout(() => {
-          statusMsg.textContent = '';
-        }, 3000);
-      });
+        .then(res => res.json())
+        .then(() => {
+          houseIndex++;
+          document.getElementById('statusMsg').textContent = 'Submitted successfully!';
+          submitBtn.style.display = 'none'; // Hide the submit button after submission
+          resetForm(); // Reset form after submission
+          setTimeout(() => {
+            statusMsg.style.display = 'none';
+          }, 3000); // Hide success message after 3 seconds
+          updateHouseSelection(); // Move to the next house
+        });
     });
 
-    okBtn.addEventListener('click', () => {
-      location.reload();
-    });
-
-    function moveToNextHouse() {
-      const currentStreet = streetSelect.value;
-      const currentNumber = numberSelect.value;
-      const streetNumbers = [...new Set(allData
-        .filter(r => r['Street'] === currentStreet)
-        .map(r => r['Street Number']))];
-      const sortedNumbers = streetNumbers.sort((a, b) => parseInt(a) - parseInt(b));
-      const currentIndex = sortedNumbers.indexOf(currentNumber);
-      const nextIndex = currentIndex + 1;
-
-      if (nextIndex < sortedNumbers.length) {
-        numberSelect.value = sortedNumbers[nextIndex];
-        numberSelect.dispatchEvent(new Event('change'));
-        resetFormState();
-      } else {
-        statusMsg.textContent += " ✅ End of houses on this street.";
-        okBtn.style.display = 'inline-block';
-        submitBtn.style.display = 'none';
-      }
-    }
-
-    function resetFormState() {
-      document.querySelectorAll('input[name="outreach"], input[name="supporter"], input[name="signNeeded"]').forEach(el => el.checked = false);
+    function resetForm() {
+      // Reset form fields to clear previous inputs
+      streetInput.value = currentStreet;  // Fill street with the current street
+      numberSelect.value = '';
+      document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
+      nameInput.value = '';
       phoneInput.value = '';
+      votesInput.value = '';
       document.getElementById('comment').value = '';
       signPhoneContainer.style.display = 'none';
+      commentContainer.style.display = 'none';
       submitBtn.style.display = 'none';
+    }
+
+    function updateHouseSelection() {
+      const houses = allData.filter(row => row['Street'] === currentStreet);
+      const numbers = [...new Set(houses.map(row => row['Street Number']))];
+
+      // Set the selected street number to the next house's street number
+      if (houseIndex < houses.length) {
+        const selectedHouse = houses[houseIndex];
+        numberSelect.value = selectedHouse['Street Number'];
+      }
     }
   </script>
 </body>
